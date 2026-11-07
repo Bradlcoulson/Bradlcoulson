@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/scripts/generate-language-card.mjs"
       - ".github/workflows/language-card.yml"
+      - "README.md"
   schedule:
     - cron: "23 6 * * 1"
   workflow_dispatch:

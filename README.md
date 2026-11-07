@@ -1,5 +1,5 @@
-![Language breakdown across my repositories](./assets/top-languages-light.svg?v=42389683874#gh-light-mode-only)
-![Language breakdown across my repositories](./assets/top-languages-dark.svg?v=42389683874#gh-dark-mode-only)
+![Language breakdown across my repositories](https://raw.githubusercontent.com/Bradlcoulson/Bradlcoulson/main/assets/top-languages-light.svg?v=42389683874#gh-light-mode-only)
+![Language breakdown across my repositories](https://raw.githubusercontent.com/Bradlcoulson/Bradlcoulson/main/assets/top-languages-dark.svg?v=42389683874#gh-dark-mode-only)
 
 _Generated weekly by GitHub Actions._
 
