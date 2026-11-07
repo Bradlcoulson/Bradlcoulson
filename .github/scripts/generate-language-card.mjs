@@ -23,6 +23,10 @@ const languageColors = {
 };
 
 const fallbackColors = ["#6f42c1", "#d73a49", "#0366d6", "#e36209", "#28a745"];
+const frameworkColors = {
+  Hono: "#e36002",
+  React: "#58c4dc",
+};
 
 function escapeXml(value) {
   return value.replace(/[<>&"']/g, (character) => {
@@ -37,7 +41,12 @@ function escapeXml(value) {
   });
 }
 
-export function createLanguageCard(languageTotals, theme = "light") {
+export function createLanguageCard(
+  languageTotals,
+  theme = "light",
+  frameworks = {},
+  repositoryCount = 0,
+) {
   if (theme !== "light" && theme !== "dark") {
     throw new Error(`Unsupported card theme: ${theme}.`);
   }
@@ -48,7 +57,28 @@ export function createLanguageCard(languageTotals, theme = "light") {
   const sortedLanguages = allLanguages.slice(0, 8);
   const totalBytes = allLanguages.reduce((total, [, bytes]) => total + bytes, 0);
   const rowHeight = 34;
-  const height = 94 + sortedLanguages.length * rowHeight;
+  const detectedFrameworks = Object.entries(frameworks)
+    .filter(([, repositories]) => Number.isInteger(repositories) && repositories > 0)
+  if (detectedFrameworks.length && (!Number.isInteger(repositoryCount) || repositoryCount <= 0)) {
+    throw new Error("A positive repository count is required to render framework usage bars.");
+  }
+  const rows = [
+    ...sortedLanguages.map(([name, bytes]) => ({
+      name,
+      percentage: (bytes / totalBytes) * 100,
+      color: languageColors[name],
+    })),
+    ...detectedFrameworks.map(([name, count]) => ({
+      name,
+      percentage: Math.min(count / repositoryCount, 1) * 100,
+      color: frameworkColors[name],
+    })),
+  ].sort(
+    (rowA, rowB) => rowB.percentage - rowA.percentage || rowA.name.localeCompare(rowB.name),
+  );
+  const hasLanguageData = sortedLanguages.length > 0;
+  const rowCount = Math.max(rows.length + (hasLanguageData ? 0 : 1), 1);
+  const height = 94 + rowCount * rowHeight;
   const colors =
     theme === "dark"
       ? {
@@ -66,46 +96,71 @@ export function createLanguageCard(languageTotals, theme = "light") {
           track: "#e1e4e8",
         };
 
-  const rows = sortedLanguages.length
-    ? sortedLanguages
-        .map(([name, bytes], index) => {
-          const y = 81 + index * rowHeight;
-          const percentage = (bytes / totalBytes) * 100;
-          const color = languageColors[name] ?? fallbackColors[index % fallbackColors.length];
-          const label = escapeXml(name);
-          const shownPercentage = `${percentage.toFixed(1)}%`;
+  const renderedRows = rows
+    .map(({ name, percentage, color }, index) => {
+      const rowIndex = index + (hasLanguageData ? 0 : 1);
+      const y = 81 + rowIndex * rowHeight;
+      const rowColor = color ?? fallbackColors[index % fallbackColors.length];
+      const label = escapeXml(name);
+      const shownPercentage = `${percentage.toFixed(1)}%`;
 
-          return `  <text x="24" y="${y}" fill="${colors.text}">${label}</text>
+      return `  <text x="24" y="${y}" fill="${colors.text}">${label}</text>
   <rect x="150" y="${y - 13}" width="300" height="12" rx="6" fill="${colors.track}"/>
-  <rect x="150" y="${y - 13}" width="${(percentage * 3).toFixed(2)}" height="12" rx="6" fill="${color}"/>
+  <rect x="150" y="${y - 13}" width="${(percentage * 3).toFixed(2)}" height="12" rx="6" fill="${rowColor}"/>
   <text x="526" y="${y}" text-anchor="end" fill="${colors.muted}" class="percentage">${shownPercentage}</text>`;
-        })
-        .join("\n")
-    : `  <text x="24" y="82" fill="${colors.muted}" class="muted">No repository language data found.</text>`;
+    })
+    .join("\n");
+  const noLanguageDataRow = hasLanguageData
+    ? ""
+    : `  <text x="24" y="82" fill="${colors.muted}" class="muted">No repository language data found.</text>\n`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="550" height="${height}" viewBox="0 0 550 ${height}" role="img" aria-labelledby="title description">
-  <title id="title">Top languages across repositories</title>
-  <desc id="description">Language proportions based on GitHub repository byte counts.</desc>
+  <title id="title">Across repositories</title>
+  <desc id="description">Language proportions by code size and framework proportions by repository count.</desc>
   <style>
     text { font: 14px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; }
     .heading { font-size: 18px; font-weight: 600; }
     .percentage { font-size: 12px; }
   </style>
   <rect width="550" height="${height}" rx="8" fill="${colors.card}" stroke="${colors.border}"/>
-  <text x="24" y="34" fill="${colors.text}" class="heading">Languages across repositories</text>
-${rows}
+  <text x="24" y="34" fill="${colors.text}" class="heading">Across repositories</text>
+${noLanguageDataRow}${renderedRows}
 </svg>
 `;
 }
 
-export async function fetchLanguageTotals({
+function dependencyNames(packageManifest) {
+  const manifest = JSON.parse(packageManifest);
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+    throw new Error("GitHub API returned an invalid package.json manifest.");
+  }
+
+  const names = new Set();
+  for (const section of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+    const dependencies = manifest[section];
+    if (dependencies === undefined) {
+      continue;
+    }
+    if (!dependencies || typeof dependencies !== "object" || Array.isArray(dependencies)) {
+      throw new Error(`GitHub API returned an invalid ${section} section in package.json.`);
+    }
+    for (const name of Object.keys(dependencies)) {
+      names.add(name.toLowerCase());
+    }
+  }
+  return names;
+}
+
+export async function fetchLanguageStats({
   username,
   token,
   apiBaseUrl = "https://api.github.com",
   fetchImpl = fetch,
 }) {
   if (!token) {
-    throw new Error("Missing PRIVATE_REPOS_TOKEN secret; add it in repository Actions secrets.");
+    throw new Error(
+      "Missing PRIVATE_REPOS_TOKEN secret; add it in repository Actions secrets with Contents: read access.",
+    );
   }
 
   const baseUrl = apiBaseUrl.replace(/\/$/, "");
@@ -119,10 +174,22 @@ export async function fetchLanguageTotals({
     });
 
     if (!response.ok) {
-      throw new Error(`GitHub API request failed (${response.status}) for ${path}.`);
+      const permissionHint =
+        response.status === 403 || response.status === 404
+          ? " Check that PRIVATE_REPOS_TOKEN has Contents: read access to the repository."
+          : "";
+      throw new Error(`GitHub API request failed (${response.status}) for ${path}.${permissionHint}`);
     }
 
     return response.json();
+  };
+
+  const repositoryPath = (repository) => {
+    const [owner, name] = repository.full_name.split("/");
+    if (!owner || !name) {
+      throw new Error("GitHub API returned a repository with an invalid full name.");
+    }
+    return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
   };
 
   const repositories = [];
@@ -149,40 +216,107 @@ export async function fetchLanguageTotals({
   }
 
   const languageTotals = {};
+  const frameworks = {};
   for (let index = 0; index < repositories.length; index += 5) {
     const batch = repositories.slice(index, index + 5);
-    const languageMaps = await Promise.all(
-      batch.map((repository) => {
-        const [owner, name] = repository.full_name.split("/");
-        if (!owner || !name) {
-          throw new Error("GitHub API returned a repository with an invalid full name.");
+    const repositoryStats = await Promise.all(
+      batch.map(async (repository) => {
+        const path = repositoryPath(repository);
+        const languages = await requestJson(`${path}/languages`);
+        if (!languages || typeof languages !== "object" || Array.isArray(languages)) {
+          throw new Error("GitHub API returned invalid repository language data.");
         }
-        return requestJson(
-          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/languages`,
+
+        const hasTypeScript = Number.isFinite(languages.TypeScript) && languages.TypeScript > 0;
+        const hasJavaScript = Number.isFinite(languages.JavaScript) && languages.JavaScript > 0;
+        if (!hasTypeScript && !hasJavaScript) {
+          return { languages, repositoryFrameworks: [] };
+        }
+
+        if (typeof repository.default_branch !== "string" || !repository.default_branch) {
+          throw new Error(`GitHub API omitted the default branch for ${repository.full_name}.`);
+        }
+        const query = new URLSearchParams({ recursive: "1" });
+        const tree = await requestJson(
+          `${path}/git/trees/${encodeURIComponent(repository.default_branch)}?${query}`,
         );
+        if (!Array.isArray(tree.tree) || typeof tree.truncated !== "boolean") {
+          throw new Error(`GitHub API returned an invalid file tree for ${repository.full_name}.`);
+        }
+        if (tree.truncated) {
+          throw new Error(
+            `GitHub truncated the file tree for ${repository.full_name}; cannot detect framework dependencies reliably.`,
+          );
+        }
+
+        const packagePaths = tree.tree
+          .filter(
+            (entry) =>
+              entry.type === "blob" &&
+              (entry.path === "package.json" || entry.path.endsWith("/package.json")),
+          )
+          .map((entry) => entry.path);
+        const manifests = await Promise.all(
+          packagePaths.map(async (packagePath) => {
+            const encodedPath = packagePath.split("/").map(encodeURIComponent).join("/");
+            const manifestResponse = await requestJson(`${path}/contents/${encodedPath}`);
+            if (
+              manifestResponse.encoding !== "base64" ||
+              typeof manifestResponse.content !== "string"
+            ) {
+              throw new Error(
+                `GitHub API returned invalid ${packagePath} content for ${repository.full_name}.`,
+              );
+            }
+            try {
+              return {
+                packagePath,
+                dependencies: dependencyNames(
+                  Buffer.from(manifestResponse.content, "base64").toString("utf8"),
+                ),
+              };
+            } catch (error) {
+              throw new Error(
+                `Could not parse ${packagePath} for ${repository.full_name}: ${error.message}`,
+              );
+            }
+          }),
+        );
+
+        const repositoryFrameworks = [];
+        for (const { packagePath, dependencies } of manifests) {
+          if (dependencies.has("react") && !repositoryFrameworks.includes("React")) {
+            repositoryFrameworks.push("React");
+          }
+          if (dependencies.has("hono") && !repositoryFrameworks.includes("Hono")) {
+            repositoryFrameworks.push("Hono");
+          }
+        }
+
+        return { languages, repositoryFrameworks };
       }),
     );
 
-    for (const languages of languageMaps) {
-      if (!languages || typeof languages !== "object" || Array.isArray(languages)) {
-        throw new Error("GitHub API returned invalid repository language data.");
-      }
-
+    for (const { languages, repositoryFrameworks } of repositoryStats) {
       for (const [language, bytes] of Object.entries(languages)) {
         if (!Number.isFinite(bytes) || bytes < 0) {
           throw new Error(`GitHub API returned invalid byte counts for ${language}.`);
         }
         languageTotals[language] = (languageTotals[language] ?? 0) + bytes;
       }
+
+      for (const framework of repositoryFrameworks) {
+        frameworks[framework] = (frameworks[framework] ?? 0) + 1;
+      }
     }
   }
 
-  return languageTotals;
+  return { languageTotals, frameworks, repositoryCount: repositories.length };
 }
 
 async function main() {
   const username = process.env.GITHUB_USERNAME ?? "Bradlcoulson";
-  const languageTotals = await fetchLanguageTotals({
+  const { languageTotals, frameworks, repositoryCount } = await fetchLanguageStats({
     username,
     token: process.env.PRIVATE_REPOS_TOKEN,
     apiBaseUrl: process.env.GITHUB_API_URL,
@@ -192,7 +326,7 @@ async function main() {
   await mkdir(outputDirectory, { recursive: true });
   for (const theme of ["light", "dark"]) {
     const outputPath = resolve(outputDirectory, `top-languages-${theme}.svg`);
-    await writeFile(outputPath, createLanguageCard(languageTotals, theme));
+    await writeFile(outputPath, createLanguageCard(languageTotals, theme, frameworks, repositoryCount));
     console.log(`Generated ${theme} language card at ${outputPath}.`);
   }
 }
