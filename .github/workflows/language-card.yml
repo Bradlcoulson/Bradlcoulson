@@ -1,0 +1,57 @@
+name: Update language card
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/scripts/generate-language-card.mjs"
+      - ".github/workflows/language-card.yml"
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-language-card:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out profile repository
+        uses: actions/checkout@v4
+
+      - name: Generate language card
+        run: node .github/scripts/generate-language-card.mjs
+        env:
+          PRIVATE_REPOS_TOKEN: ${{ secrets.PRIVATE_REPOS_TOKEN }}
+
+      - name: Refresh profile image cache key
+        run: |
+          node --input-type=module -e '
+            import { readFile, writeFile } from "node:fs/promises";
+
+            const readme = await readFile("README.md", "utf8");
+            const cardUrlPattern = /(top-languages-(?:light|dark)\.svg\?v=)[^#\s]+/g;
+            const matches = readme.match(cardUrlPattern) ?? [];
+            if (matches.length !== 2) {
+              throw new Error(`Expected two themed card URLs in README.md; found ${matches.length}.`);
+            }
+
+            const updatedReadme = readme.replace(cardUrlPattern, `$1${process.env.CACHE_KEY}`);
+            await writeFile("README.md", updatedReadme);
+          '
+        env:
+          CACHE_KEY: ${{ github.run_id }}
+
+      - name: Commit updated card
+        run: |
+          git add assets/ README.md
+          if git diff --cached --quiet; then
+            echo "Language card is already up to date."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Update language card"
+            git push
+          fi
