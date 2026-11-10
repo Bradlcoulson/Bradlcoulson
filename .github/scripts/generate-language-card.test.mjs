@@ -162,6 +162,17 @@ test("renders bounded light and dark cards with escaped labels and proportional 
   );
 });
 
+test("renders up to 12 languages", () => {
+  const totals = Object.fromEntries(
+    Array.from({ length: 13 }, (_, index) => [`Language ${index + 1}`, 13 - index]),
+  );
+  const svg = createLanguageCard(totals);
+
+  assert.match(svg, /height="502"/);
+  assert.match(svg, />Language 12<\/text>/);
+  assert.doesNotMatch(svg, />Language 13<\/text>/);
+});
+
 test("rejects unsupported card themes", () => {
   assert.throws(() => createLanguageCard({}, "system"), /Unsupported card theme: system/);
 });

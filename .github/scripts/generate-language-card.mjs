@@ -54,7 +54,7 @@ export function createLanguageCard(
   const allLanguages = Object.entries(languageTotals)
     .filter(([, bytes]) => Number.isFinite(bytes) && bytes > 0)
     .sort(([nameA, bytesA], [nameB, bytesB]) => bytesB - bytesA || nameA.localeCompare(nameB));
-  const sortedLanguages = allLanguages.slice(0, 8);
+  const sortedLanguages = allLanguages.slice(0, 12);
   const totalBytes = allLanguages.reduce((total, [, bytes]) => total + bytes, 0);
   const rowHeight = 34;
   const detectedFrameworks = Object.entries(frameworks)
