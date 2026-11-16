@@ -40,26 +40,24 @@
   <rect x="150" y="306" width="300" height="12" rx="6" fill="#30363d"/>
   <rect x="150" y="306" width="7.73" height="12" rx="6" fill="#663399"/>
   <text x="526" y="319" text-anchor="end" fill="#8b949e" class="percentage">2.6%</text>
-  <g transform="translate(550 -272)">
-  <text x="24" y="353" fill="#e6edf3">Python</text>
-  <rect x="150" y="340" width="300" height="12" rx="6" fill="#30363d"/>
-  <rect x="150" y="340" width="6.22" height="12" rx="6" fill="#3572A5"/>
-  <text x="526" y="353" text-anchor="end" fill="#8b949e" class="percentage">2.1%</text>
-  <text x="24" y="387" fill="#e6edf3">JavaScript</text>
-  <rect x="150" y="374" width="300" height="12" rx="6" fill="#30363d"/>
-  <rect x="150" y="374" width="4.32" height="12" rx="6" fill="#f1e05a"/>
-  <text x="526" y="387" text-anchor="end" fill="#8b949e" class="percentage">1.4%</text>
-  <text x="24" y="421" fill="#e6edf3">HTML</text>
-  <rect x="150" y="408" width="300" height="12" rx="6" fill="#30363d"/>
-  <rect x="150" y="408" width="2.74" height="12" rx="6" fill="#e34c26"/>
-  <text x="526" y="421" text-anchor="end" fill="#8b949e" class="percentage">0.9%</text>
-  <text x="24" y="455" fill="#e6edf3">Go</text>
-  <rect x="150" y="442" width="300" height="12" rx="6" fill="#30363d"/>
-  <rect x="150" y="442" width="0.60" height="12" rx="6" fill="#00ADD8"/>
-  <text x="526" y="455" text-anchor="end" fill="#8b949e" class="percentage">0.2%</text>
-  <text x="24" y="489" fill="#e6edf3">Nix</text>
-  <rect x="150" y="476" width="300" height="12" rx="6" fill="#30363d"/>
-  <rect x="150" y="476" width="0.31" height="12" rx="6" fill="#0366d6"/>
-  <text x="526" y="489" text-anchor="end" fill="#8b949e" class="percentage">0.1%</text>
-  </g>
+  <text x="574" y="81" fill="#e6edf3">Python</text>
+  <rect x="700" y="68" width="300" height="12" rx="6" fill="#30363d"/>
+  <rect x="700" y="68" width="6.22" height="12" rx="6" fill="#3572A5"/>
+  <text x="1076" y="81" text-anchor="end" fill="#8b949e" class="percentage">2.1%</text>
+  <text x="574" y="115" fill="#e6edf3">JavaScript</text>
+  <rect x="700" y="102" width="300" height="12" rx="6" fill="#30363d"/>
+  <rect x="700" y="102" width="4.32" height="12" rx="6" fill="#f1e05a"/>
+  <text x="1076" y="115" text-anchor="end" fill="#8b949e" class="percentage">1.4%</text>
+  <text x="574" y="149" fill="#e6edf3">HTML</text>
+  <rect x="700" y="136" width="300" height="12" rx="6" fill="#30363d"/>
+  <rect x="700" y="136" width="2.74" height="12" rx="6" fill="#e34c26"/>
+  <text x="1076" y="149" text-anchor="end" fill="#8b949e" class="percentage">0.9%</text>
+  <text x="574" y="183" fill="#e6edf3">Go</text>
+  <rect x="700" y="170" width="300" height="12" rx="6" fill="#30363d"/>
+  <rect x="700" y="170" width="0.60" height="12" rx="6" fill="#00ADD8"/>
+  <text x="1076" y="183" text-anchor="end" fill="#8b949e" class="percentage">0.2%</text>
+  <text x="574" y="217" fill="#e6edf3">Nix</text>
+  <rect x="700" y="204" width="300" height="12" rx="6" fill="#30363d"/>
+  <rect x="700" y="204" width="0.31" height="12" rx="6" fill="#0366d6"/>
+  <text x="1076" y="217" text-anchor="end" fill="#8b949e" class="percentage">0.1%</text>
 </svg>
