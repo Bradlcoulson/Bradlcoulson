@@ -123,7 +123,7 @@ test("renders bounded light and dark cards with escaped labels and proportional 
   const darkSvg = createLanguageCard(totals, "dark");
 
   for (const svg of [lightSvg, darkSvg]) {
-    assert.match(svg, /width="550"/);
+    assert.match(svg, /width="1100"/);
     assert.match(svg, /C\+\+/);
     assert.match(svg, /Rust &lt;script&gt;/);
     assert.match(svg, /75\.0%/);
@@ -162,15 +162,30 @@ test("renders bounded light and dark cards with escaped labels and proportional 
   );
 });
 
-test("renders up to 12 languages", () => {
+test("renders up to 14 languages across two columns", () => {
   const totals = Object.fromEntries(
-    Array.from({ length: 13 }, (_, index) => [`Language ${index + 1}`, 13 - index]),
+    Array.from({ length: 15 }, (_, index) => [`Language ${index + 1}`, 15 - index]),
   );
   const svg = createLanguageCard(totals);
 
-  assert.match(svg, /height="502"/);
-  assert.match(svg, />Language 12<\/text>/);
-  assert.doesNotMatch(svg, />Language 13<\/text>/);
+  assert.match(svg, /width="1100" height="366"/);
+  assert.match(svg, />Language 8<\/text>/);
+  assert.match(svg, /<text x="574" y="81"[^>]*>Language 9<\/text>/);
+  assert.match(svg, />Language 14<\/text>/);
+  assert.doesNotMatch(svg, />Language 15<\/text>/);
+});
+
+test("fits eight rows in each column when frameworks are included", () => {
+  const totals = Object.fromEntries(
+    Array.from({ length: 14 }, (_, index) => [`Language ${index + 1}`, 14 - index]),
+  );
+  const svg = createLanguageCard(totals, "light", { React: 1, Hono: 1 }, 10);
+  const leftColumnRows = svg.match(/<text x="24" y="\d+" fill="#24292f">/g) ?? [];
+  const rightColumnRows = svg.match(/<text x="574" y="\d+" fill="#24292f">/g) ?? [];
+
+  assert.equal(leftColumnRows.length, 8);
+  assert.equal(rightColumnRows.length, 8);
+  assert.match(svg, /width="1100" height="366"/);
 });
 
 test("rejects unsupported card themes", () => {

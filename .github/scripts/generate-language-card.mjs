@@ -54,7 +54,7 @@ export function createLanguageCard(
   const allLanguages = Object.entries(languageTotals)
     .filter(([, bytes]) => Number.isFinite(bytes) && bytes > 0)
     .sort(([nameA, bytesA], [nameB, bytesB]) => bytesB - bytesA || nameA.localeCompare(nameB));
-  const sortedLanguages = allLanguages.slice(0, 12);
+  const sortedLanguages = allLanguages.slice(0, 14);
   const totalBytes = allLanguages.reduce((total, [, bytes]) => total + bytes, 0);
   const rowHeight = 34;
   const detectedFrameworks = Object.entries(frameworks)
@@ -77,8 +77,9 @@ export function createLanguageCard(
     (rowA, rowB) => rowB.percentage - rowA.percentage || rowA.name.localeCompare(rowB.name),
   );
   const hasLanguageData = sortedLanguages.length > 0;
-  const rowCount = Math.max(rows.length + (hasLanguageData ? 0 : 1), 1);
+  const rowCount = Math.max(Math.min(rows.length, 8) + (hasLanguageData ? 0 : 1), 1);
   const height = 94 + rowCount * rowHeight;
+  const width = 1100;
   const colors =
     theme === "dark"
       ? {
@@ -96,25 +97,26 @@ export function createLanguageCard(
           track: "#e1e4e8",
         };
 
-  const renderedRows = rows
+  const renderedRows = rows.slice(0, 16)
     .map(({ name, percentage, color }, index) => {
-      const rowIndex = index + (hasLanguageData ? 0 : 1);
+      const rowIndex = (index % 8) + (hasLanguageData ? 0 : 1);
+      const columnOffset = Math.floor(index / 8) * 550;
       const y = 81 + rowIndex * rowHeight;
       const rowColor = color ?? fallbackColors[index % fallbackColors.length];
       const label = escapeXml(name);
       const shownPercentage = `${percentage.toFixed(1)}%`;
 
-      return `  <text x="24" y="${y}" fill="${colors.text}">${label}</text>
-  <rect x="150" y="${y - 13}" width="300" height="12" rx="6" fill="${colors.track}"/>
-  <rect x="150" y="${y - 13}" width="${(percentage * 3).toFixed(2)}" height="12" rx="6" fill="${rowColor}"/>
-  <text x="526" y="${y}" text-anchor="end" fill="${colors.muted}" class="percentage">${shownPercentage}</text>`;
+      return `  <text x="${24 + columnOffset}" y="${y}" fill="${colors.text}">${label}</text>
+  <rect x="${150 + columnOffset}" y="${y - 13}" width="300" height="12" rx="6" fill="${colors.track}"/>
+  <rect x="${150 + columnOffset}" y="${y - 13}" width="${(percentage * 3).toFixed(2)}" height="12" rx="6" fill="${rowColor}"/>
+  <text x="${526 + columnOffset}" y="${y}" text-anchor="end" fill="${colors.muted}" class="percentage">${shownPercentage}</text>`;
     })
     .join("\n");
   const noLanguageDataRow = hasLanguageData
     ? ""
     : `  <text x="24" y="82" fill="${colors.muted}" class="muted">No repository language data found.</text>\n`;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="550" height="${height}" viewBox="0 0 550 ${height}" role="img" aria-labelledby="title description">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="title description">
   <title id="title">Across repositories</title>
   <desc id="description">Language proportions by code size and framework proportions by repository count.</desc>
   <style>
@@ -122,7 +124,7 @@ export function createLanguageCard(
     .heading { font-size: 18px; font-weight: 600; }
     .percentage { font-size: 12px; }
   </style>
-  <rect width="550" height="${height}" rx="8" fill="${colors.card}" stroke="${colors.border}"/>
+  <rect width="${width}" height="${height}" rx="8" fill="${colors.card}" stroke="${colors.border}"/>
   <text x="24" y="34" fill="${colors.text}" class="heading">Across repositories</text>
 ${noLanguageDataRow}${renderedRows}
 </svg>
